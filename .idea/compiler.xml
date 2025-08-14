@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="API-Gateway" />
+        <module name="Configuration-Service" />
+        <module name="Rate-Limiter-Service" />
+        <module name="Analytics-Service" />
+        <module name="Service-Registry" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="API-Gateway" options="-parameters" />
+      <module name="Analytics-Service" options="-parameters" />
+      <module name="Configuration-Service" options="-parameters" />
+      <module name="Rate-Limiter-Service" options="-parameters" />
+      <module name="Service-Registry" options="-parameters" />
+    </option>
+  </component>
+</project>
