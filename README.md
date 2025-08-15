@@ -85,20 +85,120 @@ No Docker or Redis required — runs **locally with minimal setup** and is easil
 - PostgreSQL (running locally on port 5432)
 - IDE (IntelliJ recommended)
 
-### **Database Setup**
-```sql
-CREATE DATABASE ratelimiterdb;
+## Update DB Credentials
 
+In `configuration-service` & `analytics-service` → `application.properties`:
 
+```
 spring.datasource.url=jdbc:postgresql://localhost:5432/ratelimiterdb
 spring.datasource.username=YOUR_USER
 spring.datasource.password=YOUR_PASS
 spring.jpa.hibernate.ddl-auto=update
+```
 
+---
 
+## Start Services (in order)
+
+1. **Service Registry** → http://localhost:8761
+2. **Configuration Service**
+3. **Rate Limiter Service**
+4. **API Gateway**
+5. **(Optional) Analytics Service**
+
+---
+
+## 🔧 Gateway Config (`api-gateway/application.properties`)
+```
 server.port=8765
 spring.application.name=api-gateway
 eureka.client.service-url.defaultZone=http://localhost:8761/eureka/
 ratelimiter.service.url=http://localhost:8084
 spring.cloud.gateway.discovery.locator.enabled=true
 spring.cloud.gateway.discovery.locator.lower-case-service-id=true
+```
+
+⚠ Do NOT include `spring-boot-starter-web` in the gateway module (WebFlux only).
+
+---
+
+## 🚀 Testing with Postman
+
+### Headers
+```
+X-User-ID: user1
+```
+
+### Create a Rule
+```
+POST http://localhost:8083/rules
+Content-Type: application/json
+
+{
+  "userId": "user1",
+  "limit": 5,
+  "windowInSeconds": 60
+}
+```
+
+### Test Rate Limiter Directly
+```
+POST http://localhost:8084/check-limit
+Content-Type: application/json
+
+{
+  "userId": "user1"
+}
+```
+
+✅ First 5 → `{ "allowed": true }`  
+❌ After limit → `{ "allowed": false }` until window resets
+
+---
+
+### Test via Gateway
+```
+GET http://localhost:8765/configuration-service/rules/user1
+Header: X-User-ID: user1
+```
+
+First 5 rapid requests → **200 OK**  
+6th+ within 60s → **429 Too Many Requests**
+
+---
+
+## 🔍 Key Implementation Notes
+
+- No Redis — uses `ConcurrentHashMap` for counters
+- PostgreSQL reserved keyword `limit` → mapped as `req_limit`
+- Feign — ensure `@EnableFeignClients` scans Feign interfaces
+- Gateway filter method:
+```java
+Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
+```
+
+---
+
+## 🧪 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Spring Boot & Spring Cloud version mismatch | Use Boot `3.1.x` & Cloud `2022.0.x` |
+| Gateway detects MVC | Remove `spring-boot-starter-web` from gateway |
+| PostgreSQL auth failed | Check username/password & Hibernate dialect |
+| Syntax error near 'limit' | Use `@Column(name="req_limit")` |
+| Gateway returns 400 | Ensure `X-User-ID` header is present |
+
+---
+
+## 🗺 Roadmap
+
+- Per-route & per-method rules
+- Sliding window & token bucket
+- Hierarchical limits (user, tenant, global)
+- Live rule updates
+- Circuit breakers
+- Prometheus + Grafana dashboards
+- API keys + HMAC signatures
+
+---
