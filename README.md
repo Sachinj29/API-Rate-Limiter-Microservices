@@ -22,8 +22,6 @@ A **developer-friendly, microservices-based platform** to **enforce API rate lim
 
 No Docker or Redis required — runs **locally with minimal setup** and is easily extensible.
 
-> 💡 _Note: Optional Notification Service is planned separately and **not** included in this README._
-
 ---
 
 ## 🏗 Architecture
