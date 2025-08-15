@@ -1,7 +1,5 @@
 package com.sachin.Rate.Limiter.Service.service;
 
-
-
 import com.sachin.Rate.Limiter.Service.client.ConfigServiceClient;
 import com.sachin.Rate.Limiter.Service.dto.RateLimitRule;
 import org.springframework.stereotype.Service;
@@ -15,44 +13,45 @@ public class RateLimiterCoreService {
 
     private final ConfigServiceClient configClient;
 
-    // Map<userId, UserRequestData>
-    private final Map<String, UserRequestData> requestStore = new ConcurrentHashMap<>();
+    // Map<userId, window data>
+    private final Map<String, UserWindow> store = new ConcurrentHashMap<>();
 
     public RateLimiterCoreService(ConfigServiceClient configClient) {
         this.configClient = configClient;
     }
 
     public synchronized boolean isRequestAllowed(String userId) {
-        RateLimitRule rule = configClient.getRule(userId);
-
-        // If no rule exists, allow all
+        RateLimitRule rule;
+        try {
+            rule = configClient.getRule(userId);
+        } catch (Exception e) {
+            // If config service is down or user not found, allow by default
+            return true;
+        }
         if (rule == null) {
             return true;
         }
 
         long now = Instant.now().getEpochSecond();
-        UserRequestData data = requestStore.getOrDefault(userId, new UserRequestData(0, now));
+        UserWindow w = store.getOrDefault(userId, new UserWindow(0, now));
 
-        // If window expired - reset counter
-        if (now - data.windowStart >= rule.getWindowInSeconds()) {
-            data.requestCount = 0;
-            data.windowStart = now;
+        // reset window if expired
+        if (now - w.windowStart >= rule.getWindowInSeconds()) {
+            w.count = 0;
+            w.windowStart = now;
         }
 
-        // Increment and check
-        data.requestCount++;
-        requestStore.put(userId, data);
+        w.count++;
+        store.put(userId, w);
 
-        return data.requestCount <= rule.getLimit();
+        return w.count <= rule.getLimit();
     }
 
-    // Inner class to store user request count and window start time
-    private static class UserRequestData {
-        int requestCount;
+    private static class UserWindow {
+        int count;
         long windowStart;
-
-        UserRequestData(int requestCount, long windowStart) {
-            this.requestCount = requestCount;
+        UserWindow(int count, long windowStart) {
+            this.count = count;
             this.windowStart = windowStart;
         }
     }
