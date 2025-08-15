@@ -190,15 +190,3 @@ Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain)
 | Gateway returns 400 | Ensure `X-User-ID` header is present |
 
 ---
-
-## 🗺 Roadmap
-
-- Per-route & per-method rules
-- Sliding window & token bucket
-- Hierarchical limits (user, tenant, global)
-- Live rule updates
-- Circuit breakers
-- Prometheus + Grafana dashboards
-- API keys + HMAC signatures
-
----
